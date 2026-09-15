@@ -90,18 +90,27 @@ main {
   font-weight: 600;
 }
 
+.fila-derecha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fila-caliente-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 4px 6px;
+  font-size: 1.1rem;
+}
+
 .check-caliente {
   display: flex;
   align-items: center;
-  gap: 2px;
-  font-size: 1.2rem;
-  color: var(--texto-suave);
   cursor: pointer;
-  white-space: nowrap;
 }
 .check-caliente input {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   accent-color: var(--acento);
   cursor: pointer;
 }

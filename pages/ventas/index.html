@@ -135,21 +135,24 @@ function iniciarApp() {
 
   function renderSabores() {
     const cont = document.getElementById('lista-sabores');
-    cont.innerHTML = '';
+    // El ícono de "caliente" va una sola vez arriba, alineado sobre la
+    // columna de checks, en vez de repetirse en cada fila.
+    cont.innerHTML = '<div class="fila-caliente-header"><span>🔥</span></div>';
     SABORES.forEach((sabor) => {
       const fila = document.createElement('div');
       fila.className = 'fila-sabor';
       fila.innerHTML = `
         <span class="nombre">${sabor}</span>
-        <span class="stepper">
-          <button type="button" data-op="menos">−</button>
-          <input type="number" inputmode="numeric" min="0" value="0" readonly />
-          <button type="button" data-op="mas">+</button>
-        </span>
-        <label class="check-caliente" title="Marcar para preparar/entregar caliente">
-          <input type="checkbox" data-caliente ${calientes[sabor] ? 'checked' : ''} />
-          🔥
-        </label>`;
+        <span class="fila-derecha">
+          <span class="stepper">
+            <button type="button" data-op="menos">−</button>
+            <input type="number" inputmode="numeric" min="0" value="0" readonly />
+            <button type="button" data-op="mas">+</button>
+          </span>
+          <label class="check-caliente" title="Marcar para preparar/entregar caliente">
+            <input type="checkbox" data-caliente ${calientes[sabor] ? 'checked' : ''} />
+          </label>
+        </span>`;
       const input = fila.querySelector('input[type="number"]');
       const checkCaliente = fila.querySelector('[data-caliente]');
       fila.querySelector('[data-op="menos"]').addEventListener('click', () => {
