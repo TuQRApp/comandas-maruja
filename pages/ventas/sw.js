@@ -1,4 +1,4 @@
-const CACHE = 'ventas-v7';
+const CACHE = 'ventas-v8';
 const ARCHIVOS = ['./index.html', './manifest.json', '../shared/api.js', '../shared/estilos.css'];
 
 self.addEventListener('install', (e) => {
