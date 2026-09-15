@@ -40,11 +40,11 @@ inicies sesión con tus propias cuentas — yo no puedo autenticarme por ti.
 
 ## 1. Subir el proyecto a GitHub
 
+El zip ya trae un repo git inicializado con el primer commit hecho, así
+que solo falta conectarlo a GitHub:
+
 ```bash
 cd comandas-empanadas
-git init
-git add .
-git commit -m "Sistema de comandas: worker + PWAs + bridge"
 ```
 
 Crea un repo vacío en https://github.com/new (por ejemplo
