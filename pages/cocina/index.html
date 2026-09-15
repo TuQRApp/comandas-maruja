@@ -14,7 +14,7 @@
 
 <div id="pantalla-config" class="config-pantalla" hidden>
   <h2>Configurar conexión</h2>
-  <p style="color:var(--texto-suave)">Pide estos datos a quien instaló el sistema.</p>
+  <p style="color:var(--texto-suave)">Esto ya viene configurado por defecto. Solo cámbialo si te lo pidieron expresamente.</p>
   <label for="cfg-url">URL de la API (Worker)</label>
   <input id="cfg-url" type="url" placeholder="https://comandas-empanadas-api.tuusuario.workers.dev"
     autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" />
@@ -22,6 +22,7 @@
   <input id="cfg-token" type="text" placeholder="token"
     autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" />
   <button class="boton" id="cfg-guardar" style="margin-top:18px">Guardar y continuar</button>
+  <button class="boton secundario" id="cfg-cancelar" style="margin-top:10px">Cancelar</button>
   <p id="cfg-error" class="aviso error" hidden></p>
 </div>
 
@@ -51,7 +52,7 @@
 </div>
 
 <script type="module">
-import { api, fechaHoyLocal, tieneConfig, setConfig, escapeHtml } from '../shared/api.js';
+import { api, fechaHoyLocal, tieneConfig, getConfig, setConfig, escapeHtml } from '../shared/api.js';
 
 const pantallaConfig = document.getElementById('pantalla-config');
 const appDiv = document.getElementById('app');
@@ -69,11 +70,11 @@ if (!tieneConfig()) {
 }
 
 document.getElementById('btn-reconfigurar').addEventListener('click', () => {
-  if (confirm('¿Borrar la configuración actual (URL y token) y volver a ingresarla?')) {
-    localStorage.removeItem('comandas_api_url');
-    localStorage.removeItem('comandas_api_token');
-    location.reload();
-  }
+  const actual = getConfig();
+  document.getElementById('cfg-url').value = actual.url;
+  document.getElementById('cfg-token').value = actual.token;
+  appDiv.hidden = true;
+  pantallaConfig.hidden = false;
 });
 
 document.getElementById('cfg-guardar').addEventListener('click', async () => {
@@ -90,6 +91,11 @@ document.getElementById('cfg-guardar').addEventListener('click', async () => {
     err.hidden = false;
     err.textContent = 'No se pudo conectar: ' + e.message;
   }
+});
+
+document.getElementById('cfg-cancelar').addEventListener('click', () => {
+  document.getElementById('cfg-error').hidden = true;
+  if (yaIniciado) mostrarApp();
 });
 
 let yaIniciado = false;

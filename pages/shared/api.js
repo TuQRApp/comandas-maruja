@@ -1,6 +1,11 @@
 // Módulo compartido entre las PWAs de Ventas y Cocina.
-// Guarda la URL del Worker y el token de acceso en localStorage (una vez
-// configurados quedan guardados en el dispositivo).
+// Guarda la URL del Worker y el token de acceso en localStorage. Si un
+// dispositivo no tiene nada guardado, se usan estos valores por defecto —
+// así un celular nuevo funciona apenas se abre, sin tener que configurar
+// nada a mano. Si en algún momento cambian el Worker o el token, basta con
+// actualizar estas dos constantes y volver a publicar las PWAs.
+const DEFAULT_API_URL = 'https://comandas-empanadas-api.nestragues.workers.dev';
+const DEFAULT_API_TOKEN = 'empanadas2026';
 
 const LS_URL = 'comandas_api_url';
 const LS_TOKEN = 'comandas_api_token';
@@ -17,8 +22,8 @@ export const SABORES = [
 
 export function getConfig() {
   return {
-    url: localStorage.getItem(LS_URL) || '',
-    token: localStorage.getItem(LS_TOKEN) || '',
+    url: localStorage.getItem(LS_URL) || DEFAULT_API_URL,
+    token: localStorage.getItem(LS_TOKEN) || DEFAULT_API_TOKEN,
   };
 }
 

@@ -1,6 +1,6 @@
 {
-  "apiUrl": "https://comandas-empanadas-api.tuusuario.workers.dev",
-  "apiToken": "el-mismo-token-que-configuraste-con-wrangler-secret-put-API_TOKEN",
+  "apiUrl": "https://comandas-empanadas-api.nestragues.workers.dev",
+  "apiToken": "empanadas2026",
   "usbVendorId": "1FC9",
   "usbProductId": "2016",
   "pollIntervalMs": 1500
