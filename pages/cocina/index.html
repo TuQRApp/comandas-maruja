@@ -16,9 +16,11 @@
   <h2>Configurar conexión</h2>
   <p style="color:var(--texto-suave)">Pide estos datos a quien instaló el sistema.</p>
   <label for="cfg-url">URL de la API (Worker)</label>
-  <input id="cfg-url" type="url" placeholder="https://comandas-empanadas-api.tuusuario.workers.dev" />
+  <input id="cfg-url" type="url" placeholder="https://comandas-empanadas-api.tuusuario.workers.dev"
+    autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" />
   <label for="cfg-token">Token de acceso</label>
-  <input id="cfg-token" type="text" placeholder="token" />
+  <input id="cfg-token" type="text" placeholder="token"
+    autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" />
   <button class="boton" id="cfg-guardar" style="margin-top:18px">Guardar y continuar</button>
   <p id="cfg-error" class="aviso error" hidden></p>
 </div>
@@ -27,6 +29,7 @@
   <header class="barra">
     <h1>🧾 Empanadas</h1>
     <span class="rol">Cocina</span>
+    <button id="btn-reconfigurar" class="boton chico secundario" style="background:transparent;color:#fff;border-color:#fff">⚙️</button>
   </header>
 
   <main>
@@ -63,6 +66,14 @@ if (!tieneConfig()) {
 } else {
   mostrarApp();
 }
+
+document.getElementById('btn-reconfigurar').addEventListener('click', () => {
+  if (confirm('¿Borrar la configuración actual (URL y token) y volver a ingresarla?')) {
+    localStorage.removeItem('comandas_api_url');
+    localStorage.removeItem('comandas_api_token');
+    location.reload();
+  }
+});
 
 document.getElementById('cfg-guardar').addEventListener('click', async () => {
   const url = document.getElementById('cfg-url').value;
