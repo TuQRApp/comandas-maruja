@@ -1,4 +1,4 @@
-const CACHE = 'cocina-v5';
+const CACHE = 'cocina-v6';
 const ARCHIVOS = ['./index.html', './manifest.json', '../shared/api.js', '../shared/estilos.css'];
 
 self.addEventListener('install', (e) => {

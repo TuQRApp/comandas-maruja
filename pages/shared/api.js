@@ -5,7 +5,7 @@
 // nada a mano. Si en algún momento cambian el Worker o el token, basta con
 // actualizar estas dos constantes y volver a publicar las PWAs.
 const DEFAULT_API_URL = 'https://comandas-empanadas-api.nestragues.workers.dev';
-const DEFAULT_API_TOKEN = 'empanadas2026';
+const DEFAULT_API_TOKEN = 'maruja 1234';
 
 const LS_URL = 'comandas_api_url';
 const LS_TOKEN = 'comandas_api_token';
