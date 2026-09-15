@@ -141,15 +141,15 @@ function iniciarApp() {
       fila.className = 'fila-sabor';
       fila.innerHTML = `
         <span class="nombre">${sabor}</span>
-        <label class="check-caliente" title="Marcar para preparar/entregar caliente">
-          <input type="checkbox" data-caliente ${calientes[sabor] ? 'checked' : ''} />
-          🔥 Caliente
-        </label>
         <span class="stepper">
           <button type="button" data-op="menos">−</button>
           <input type="number" inputmode="numeric" min="0" value="0" readonly />
           <button type="button" data-op="mas">+</button>
-        </span>`;
+        </span>
+        <label class="check-caliente" title="Marcar para preparar/entregar caliente">
+          <input type="checkbox" data-caliente ${calientes[sabor] ? 'checked' : ''} />
+          🔥
+        </label>`;
       const input = fila.querySelector('input[type="number"]');
       const checkCaliente = fila.querySelector('[data-caliente]');
       fila.querySelector('[data-op="menos"]').addEventListener('click', () => {

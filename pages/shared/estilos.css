@@ -93,8 +93,8 @@ main {
 .check-caliente {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.85rem;
+  gap: 2px;
+  font-size: 1.2rem;
   color: var(--texto-suave);
   cursor: pointer;
   white-space: nowrap;
