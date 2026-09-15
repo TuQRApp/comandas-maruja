@@ -161,11 +161,12 @@ function iniciarApp() {
     const esListo = p.estado === 'listo';
     const items = p.items.map((it) => {
       const entregado = it.cantidad_entregada != null ? it.cantidad_entregada : it.cantidad_pedida;
+      const marca = it.caliente ? ' 🔥' : '';
       if (esListo) {
-        return `<div class="linea-item"><span>${it.sabor}</span><span class="cant">${entregado} / ${it.cantidad_pedida}</span></div>`;
+        return `<div class="linea-item"><span>${it.sabor}${marca}</span><span class="cant">${entregado} / ${it.cantidad_pedida}</span></div>`;
       }
       return `<div class="fila-sabor">
-        <span class="nombre ${it.sabor === 'Pino' ? 'pino' : ''}">${it.sabor} <small style="color:var(--texto-suave)">(pedido: ${it.cantidad_pedida})</small></span>
+        <span class="nombre">${it.sabor}${marca} <small style="color:var(--texto-suave)">(pedido: ${it.cantidad_pedida})</small></span>
         <span class="stepper">
           <button type="button" id="menos-${p.id}-${it.id}">−</button>
           <input type="number" id="cant-${p.id}-${it.id}" value="${it.cantidad_pedida}" readonly />
@@ -180,6 +181,7 @@ function iniciarApp() {
         <span class="hora">${p.hora}</span>
       </div>
       ${p.cliente ? `<div style="color:var(--texto-suave);margin-bottom:6px">Cliente: ${escapeHtml(p.cliente)}</div>` : ''}
+      ${p.comentario ? `<div style="color:var(--texto-suave);margin-bottom:6px">Comentario: ${escapeHtml(p.comentario)}</div>` : ''}
       <span class="badge ${p.estado}">${etiquetaEstado(p.estado)}</span>
       <div style="margin-top:10px">${items}</div>
       ${esListo ? '' : `<button class="boton" style="margin-top:14px" id="confirmar-${p.id}">Confirmar entrega</button>`}
@@ -187,7 +189,7 @@ function iniciarApp() {
   }
 
   function etiquetaEstado(e) {
-    return { pendiente: 'Pendiente de imprimir', impreso: 'Impreso - en preparación', error_impresion: 'Error de impresión', listo: 'Listo' }[e] || e;
+    return { pendiente: 'Pendiente de imprimir', confirmando: 'Confirmando…', impreso: 'Impreso - en preparación', error_impresion: 'Error de impresión', listo: 'Listo' }[e] || e;
   }
 
   async function confirmarPedido(p) {

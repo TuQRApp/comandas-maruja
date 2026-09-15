@@ -47,6 +47,11 @@
         <input id="cliente" type="text" placeholder="Ej: Juanita" style="width:100%;padding:12px;font-size:1.1rem;border:1px solid var(--borde);border-radius:10px" />
       </div>
       <div class="tarjeta" id="lista-sabores"></div>
+      <div class="tarjeta">
+        <label for="comentario" style="display:block;font-weight:600;margin-bottom:6px">Comentarios <span style="font-weight:400;color:var(--texto-suave)">(opcional)</span></label>
+        <textarea id="comentario" rows="2" placeholder="Ej: sin cebolla, para llevar, retira en 15 min..."
+          style="width:100%;padding:12px;font-size:1rem;border:1px solid var(--borde);border-radius:10px;resize:vertical;font-family:inherit"></textarea>
+      </div>
       <button class="boton" id="btn-imprimir">IMPRIMIR COMANDA</button>
       <p id="msg-nuevo" hidden></p>
     </section>
@@ -116,6 +121,7 @@ function iniciarApp() {
   yaIniciado = true;
 
   const cantidades = Object.fromEntries(SABORES.map((s) => [s, 0]));
+  const calientes = Object.fromEntries(SABORES.map((s) => [s, false]));
   renderSabores();
   cambiarTab('nuevo');
   document.querySelectorAll('.tabs button').forEach((b) =>
@@ -134,13 +140,18 @@ function iniciarApp() {
       const fila = document.createElement('div');
       fila.className = 'fila-sabor';
       fila.innerHTML = `
-        <span class="nombre ${sabor === 'Pino' ? 'pino' : ''}">${sabor}</span>
+        <span class="nombre">${sabor}</span>
+        <label class="check-caliente" title="Marcar para preparar/entregar caliente">
+          <input type="checkbox" data-caliente ${calientes[sabor] ? 'checked' : ''} />
+          🔥 Caliente
+        </label>
         <span class="stepper">
           <button type="button" data-op="menos">−</button>
           <input type="number" inputmode="numeric" min="0" value="0" readonly />
           <button type="button" data-op="mas">+</button>
         </span>`;
-      const input = fila.querySelector('input');
+      const input = fila.querySelector('input[type="number"]');
+      const checkCaliente = fila.querySelector('[data-caliente]');
       fila.querySelector('[data-op="menos"]').addEventListener('click', () => {
         cantidades[sabor] = Math.max(0, cantidades[sabor] - 1);
         input.value = cantidades[sabor];
@@ -149,12 +160,16 @@ function iniciarApp() {
         cantidades[sabor] += 1;
         input.value = cantidades[sabor];
       });
+      checkCaliente.addEventListener('change', () => {
+        calientes[sabor] = checkCaliente.checked;
+      });
       cont.appendChild(fila);
     });
   }
 
   async function imprimirComanda() {
-    const items = SABORES.filter((s) => cantidades[s] > 0).map((s) => ({ sabor: s, cantidad: cantidades[s] }));
+    const items = SABORES.filter((s) => cantidades[s] > 0)
+      .map((s) => ({ sabor: s, cantidad: cantidades[s], caliente: calientes[s] }));
     const msg = document.getElementById('msg-nuevo');
     if (items.length === 0) {
       msg.hidden = false; msg.className = 'aviso error'; msg.textContent = 'Ingresa al menos una cantidad';
@@ -162,15 +177,18 @@ function iniciarApp() {
     }
     const clienteInput = document.getElementById('cliente');
     const cliente = clienteInput.value.trim();
+    const comentarioInput = document.getElementById('comentario');
+    const comentario = comentarioInput.value.trim();
     const btn = document.getElementById('btn-imprimir');
     btn.disabled = true; btn.textContent = 'Enviando...';
     try {
-      const pedido = await api.crearPedido(items, cliente);
+      const pedido = await api.crearPedido(items, cliente, comentario);
       msg.hidden = false; msg.className = 'aviso exito';
       msg.textContent = `Comanda #${pedido.correlativo} enviada a impresión`;
-      SABORES.forEach((s) => (cantidades[s] = 0));
+      SABORES.forEach((s) => { cantidades[s] = 0; calientes[s] = false; });
       renderSabores();
       clienteInput.value = '';
+      comentarioInput.value = '';
       cargarPedidos();
     } catch (e) {
       msg.hidden = false; msg.className = 'aviso error'; msg.textContent = 'Error: ' + e.message;
@@ -194,20 +212,21 @@ function iniciarApp() {
   }
 
   function renderPedido(p) {
-    const items = p.items.map((it) => `<div class="linea-item"><span>${it.sabor}</span><span class="cant">${it.cantidad_pedida}</span></div>`).join('');
+    const items = p.items.map((it) => `<div class="linea-item"><span>${it.sabor}${it.caliente ? ' 🔥' : ''}</span><span class="cant">${it.cantidad_pedida}</span></div>`).join('');
     return `<div class="tarjeta">
       <div class="pedido-cabecera">
         <span class="num">#${p.correlativo}</span>
         <span class="hora">${p.hora}</span>
       </div>
       ${p.cliente ? `<div style="color:var(--texto-suave);margin-bottom:6px">Cliente: ${escapeHtml(p.cliente)}</div>` : ''}
+      ${p.comentario ? `<div style="color:var(--texto-suave);margin-bottom:6px">Comentario: ${escapeHtml(p.comentario)}</div>` : ''}
       <span class="badge ${p.estado}">${etiquetaEstado(p.estado)}</span>
       <div style="margin-top:10px">${items}</div>
     </div>`;
   }
 
   function etiquetaEstado(e) {
-    return { pendiente: 'Pendiente', impreso: 'Impreso', error_impresion: 'Error impresión', listo: 'Listo' }[e] || e;
+    return { pendiente: 'Pendiente', confirmando: 'Confirmando…', impreso: 'Impreso', error_impresion: 'Error impresión', listo: 'Listo' }[e] || e;
   }
 
   async function cargarInventario() {

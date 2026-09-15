@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   correlativo   INTEGER NOT NULL,
   cliente       TEXT,                       -- nombre del cliente (opcional)
+  comentario    TEXT,                       -- comentarios del pedido (opcional)
   fecha         TEXT NOT NULL,              -- 'YYYY-MM-DD' (día local Chile)
   hora          TEXT NOT NULL,              -- 'HH:MM:SS' hora local de creación
   creado_en     TEXT NOT NULL,              -- ISO 8601 UTC
@@ -20,7 +21,8 @@ CREATE TABLE IF NOT EXISTS items_pedido (
   sabor               TEXT NOT NULL,
   cantidad_pedida     INTEGER NOT NULL,
   cantidad_entregada  INTEGER,              -- NULL hasta que Cocina confirma
-  orden               INTEGER NOT NULL      -- posición de impresión (0 = Pino)
+  orden               INTEGER NOT NULL,     -- posición de impresión (0 = Pino)
+  caliente            INTEGER NOT NULL DEFAULT 0  -- 1 = marcado "caliente" en Ventas
 );
 
 CREATE TABLE IF NOT EXISTS print_jobs (

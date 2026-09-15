@@ -54,13 +54,14 @@ app.post('/api/pedidos', async (c) => {
 
   const items = body.items
     .filter((it) => it && SABORES.includes(it.sabor) && Number(it.cantidad) > 0)
-    .map((it) => ({ sabor: it.sabor, cantidad: Math.floor(Number(it.cantidad)) }));
+    .map((it) => ({ sabor: it.sabor, cantidad: Math.floor(Number(it.cantidad)), caliente: it.caliente === true || it.caliente === 1 ? 1 : 0 }));
 
   if (items.length === 0) {
     return c.json({ error: 'No hay cantidades válidas mayores a 0' }, 400);
   }
 
   const cliente = typeof body.cliente === 'string' ? body.cliente.trim().slice(0, 80) : '';
+  const comentario = typeof body.comentario === 'string' ? body.comentario.trim().slice(0, 200) : '';
 
   const { fecha, hora } = fechaHoraLocal();
   const creadoEn = new Date().toISOString();
@@ -75,9 +76,9 @@ app.post('/api/pedidos', async (c) => {
   const db = c.env.DB;
   const insertPedido = await db
     .prepare(
-      `INSERT INTO pedidos (correlativo, cliente, fecha, hora, creado_en, estado) VALUES (?, ?, ?, ?, ?, 'pendiente')`
+      `INSERT INTO pedidos (correlativo, cliente, comentario, fecha, hora, creado_en, estado) VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`
     )
-    .bind(correlativo, cliente || null, fecha, hora, creadoEn)
+    .bind(correlativo, cliente || null, comentario || null, fecha, hora, creadoEn)
     .run();
 
   const pedidoId = insertPedido.meta.last_row_id;
@@ -85,9 +86,9 @@ app.post('/api/pedidos', async (c) => {
   const stmts = items.map((it) =>
     db
       .prepare(
-        `INSERT INTO items_pedido (pedido_id, sabor, cantidad_pedida, orden) VALUES (?, ?, ?, ?)`
+        `INSERT INTO items_pedido (pedido_id, sabor, cantidad_pedida, orden, caliente) VALUES (?, ?, ?, ?, ?)`
       )
-      .bind(pedidoId, it.sabor, it.cantidad, SABORES.indexOf(it.sabor))
+      .bind(pedidoId, it.sabor, it.cantidad, SABORES.indexOf(it.sabor), it.caliente)
   );
   stmts.push(
     db
@@ -132,13 +133,29 @@ app.post('/api/pedidos/:id/confirmar', async (c) => {
 
   const pedido = await cargarPedido(db, id);
   if (!pedido) return c.json({ error: 'No encontrado' }, 404);
+  const estadoPrevio = pedido.estado;
+
+  // Reclamo atómico: si dos confirmaciones llegan casi al mismo tiempo (doble
+  // toque, dos dispositivos de cocina), solo una gana esta UPDATE porque D1
+  // serializa los writes. La otra recibe changes=0 y no llega a tocar el
+  // inventario ni a insertar movimientos duplicados.
+  const reclamo = await db
+    .prepare(`UPDATE pedidos SET estado = 'confirmando' WHERE id = ? AND estado NOT IN ('listo', 'confirmando')`)
+    .bind(id)
+    .run();
+  if (reclamo.meta.changes === 0) {
+    return c.json({ error: 'El pedido ya fue confirmado (o se está confirmando en este momento)' }, 409);
+  }
 
   const ahora = new Date().toISOString();
   const stmts = [];
 
   for (const item of pedido.items) {
     const enviado = body.items.find((it) => it.sabor === item.sabor);
-    const entregada = enviado ? Math.max(0, Math.floor(Number(enviado.cantidad_entregada))) : item.cantidad_pedida;
+    // Nunca más de lo que se pidió, y nunca negativo.
+    const entregada = enviado
+      ? Math.min(item.cantidad_pedida, Math.max(0, Math.floor(Number(enviado.cantidad_entregada)) || 0))
+      : item.cantidad_pedida;
 
     stmts.push(
       db
@@ -170,7 +187,16 @@ app.post('/api/pedidos/:id/confirmar', async (c) => {
       .bind(ahora, id)
   );
 
-  await db.batch(stmts);
+  try {
+    await db.batch(stmts);
+  } catch (err) {
+    // Si el batch falla, no dejamos el pedido colgado en 'confirmando' para
+    // siempre: lo devolvemos a su estado anterior para que se pueda
+    // reintentar la confirmación más tarde.
+    await db.prepare(`UPDATE pedidos SET estado = ? WHERE id = ?`).bind(estadoPrevio, id).run().catch(() => {});
+    return c.json({ error: 'No se pudo confirmar el pedido, intenta de nuevo' }, 500);
+  }
+
   const actualizado = await cargarPedido(db, id);
   return c.json(actualizado);
 });
@@ -192,7 +218,7 @@ app.get('/api/print-jobs/pendientes', async (c) => {
   const db = c.env.DB;
   const { results: jobs } = await db
     .prepare(
-      `SELECT pj.*, p.correlativo, p.cliente, p.fecha, p.hora
+      `SELECT pj.*, p.correlativo, p.cliente, p.comentario, p.fecha, p.hora
        FROM print_jobs pj JOIN pedidos p ON p.id = pj.pedido_id
        WHERE pj.estado = 'pendiente'
        ORDER BY pj.id ASC LIMIT 10`
@@ -202,7 +228,7 @@ app.get('/api/print-jobs/pendientes', async (c) => {
   const salida = [];
   for (const job of jobs) {
     const { results: items } = await db
-      .prepare(`SELECT sabor, cantidad_pedida FROM items_pedido WHERE pedido_id = ? ORDER BY orden ASC`)
+      .prepare(`SELECT sabor, cantidad_pedida, caliente FROM items_pedido WHERE pedido_id = ? ORDER BY orden ASC`)
       .bind(job.pedido_id)
       .all();
     salida.push({
@@ -210,9 +236,10 @@ app.get('/api/print-jobs/pendientes', async (c) => {
       pedido_id: job.pedido_id,
       correlativo: job.correlativo,
       cliente: job.cliente || '',
+      comentario: job.comentario || '',
       fecha: job.fecha,
       hora: job.hora,
-      items: items.map((it) => ({ nombre: it.sabor, cantidad: it.cantidad_pedida })),
+      items: items.map((it) => ({ nombre: it.sabor, cantidad: it.cantidad_pedida, caliente: !!it.caliente })),
     });
   }
   return c.json({ jobs: salida });
@@ -238,8 +265,12 @@ app.post('/api/print-jobs/:id/estado', async (c) => {
     .run();
 
   const estadoPedido = body.estado === 'impreso' ? 'impreso' : 'error_impresion';
+  // No pisar un pedido que ya está confirmado (o en proceso de confirmarse):
+  // un reporte de impresión duplicado o tardío no debe hacer retroceder un
+  // pedido 'listo' a 'impreso', porque eso abriría la puerta a que se vuelva
+  // a confirmar y se descuente el inventario dos veces.
   await db
-    .prepare(`UPDATE pedidos SET estado = ? WHERE id = ?`)
+    .prepare(`UPDATE pedidos SET estado = ? WHERE id = ? AND estado NOT IN ('listo', 'confirmando')`)
     .bind(estadoPedido, job.pedido_id)
     .run();
 

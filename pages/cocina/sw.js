@@ -1,4 +1,4 @@
-const CACHE = 'cocina-v8';
+const CACHE = 'cocina-v10';
 const ARCHIVOS = ['./index.html', './manifest.json', '../shared/api.js', '../shared/estilos.css'];
 
 self.addEventListener('install', (e) => {
@@ -7,8 +7,16 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
+  // Solo borra cachés viejas de ESTA app (prefijo "cocina-"). Antes se
+  // borraba cualquier caché que no fuera la actual, incluida la de Ventas
+  // ("ventas-vX"), porque caches.keys() devuelve TODAS las cachés del mismo
+  // origen, no solo las de esta app.
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.filter((k) => k !== CACHE && k.startsWith('cocina-')).map((k) => caches.delete(k))
+      )
+    )
   );
   self.clients.claim();
 });

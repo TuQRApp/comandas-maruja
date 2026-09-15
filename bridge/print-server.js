@@ -50,6 +50,25 @@ async function reportarEstado(jobId, estado, errorMsg) {
   if (!resp.ok) console.error(`No se pudo reportar estado del job ${jobId}: HTTP ${resp.status}`);
 }
 
+// Deja un texto seguro para mandarlo a la impresora:
+//   1) Quita caracteres de control (ESC, etc.) para que nadie pueda meter
+//      comandos ESC/POS escondidos en el nombre del cliente o el comentario
+//      (cortar papel, resetear la impresora, etc.).
+//   2) Quita tildes, "ñ" y cualquier otro caracter que no sea ASCII básico.
+//      No tenemos forma de confirmar desde aquí que el codepage de la
+//      impresora física muestre bien "Champiñón" o "Camarón" — si no lo
+//      soporta, esos caracteres salen como simbolos raros en el ticket. Por
+//      seguridad los reemplazamos siempre por su versión sin tilde
+//      (Champinon, Camaron), que cualquier impresora ESC/POS imprime bien.
+function limpiarParaImprimir(texto, maxLen) {
+  const sinControl = String(texto || '').replace(/[\x00-\x1F\x7F]/g, '');
+  const sinAcentos = sinControl
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // quita las tildes (é -> e, ñ -> n, etc.)
+    .replace(/[^\x20-\x7E]/g, '');   // por si queda algún otro simbolo no ASCII
+  return sinAcentos.trim().slice(0, maxLen || 80);
+}
+
 function imprimirTicket(job) {
   return new Promise((resolve, reject) => {
     let device;
@@ -70,14 +89,23 @@ function imprimirTicket(job) {
           .text(`COMANDA #${job.correlativo}`)
           .text(`${job.fecha}  ${job.hora}`);
 
-        if (job.cliente) {
-          printer.text(`Cliente: ${job.cliente}`);
+        const clienteSeguro = limpiarParaImprimir(job.cliente, 80);
+        if (clienteSeguro) {
+          printer.text(`Cliente: ${clienteSeguro}`);
         }
 
         printer.text('--------------------------------').align('LT').size(1, 1);
 
         for (const item of job.items) {
-          printer.text(`${item.cantidad} x ${item.nombre}`);
+          const nombreSeguro = limpiarParaImprimir(item.nombre, 40);
+          const marca = item.caliente ? ' (CALIENTE)' : '';
+          printer.text(`${item.cantidad} x ${nombreSeguro}${marca}`);
+        }
+
+        const comentarioSeguro = limpiarParaImprimir(job.comentario, 200);
+        if (comentarioSeguro) {
+          printer.text('--------------------------------');
+          printer.text(`Comentario: ${comentarioSeguro}`);
         }
 
         printer.text(' ').text(' ').cut().close(() => resolve());

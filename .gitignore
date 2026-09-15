@@ -5,3 +5,12 @@ dist/
 bridge/config.json
 .env
 .DS_Store
+
+# Keys y resultados de las revisiones de código (DeepSeek/Codex) — nunca subir
+deepseek-key.txt
+openai-key.txt
+openai-key.txt.txt
+review-deepseek.md
+review-codex.md
+prompt-codex.txt
+prompt-codex-full.txt

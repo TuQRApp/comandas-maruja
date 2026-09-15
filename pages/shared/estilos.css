@@ -89,9 +89,21 @@ main {
   font-size: 1.15rem;
   font-weight: 600;
 }
-.fila-sabor .nombre.pino::before {
-  content: '★ ';
-  color: var(--acento);
+
+.check-caliente {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.check-caliente input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--acento);
+  cursor: pointer;
 }
 
 .stepper {
@@ -166,6 +178,7 @@ main {
   letter-spacing: 0.02em;
 }
 .badge.pendiente { background: var(--alerta-suave); color: var(--alerta); }
+.badge.confirmando { background: var(--alerta-suave); color: var(--alerta); }
 .badge.impreso { background: #e4e9f7; color: #2f4a9c; }
 .badge.error_impresion { background: var(--error-suave); color: var(--error); }
 .badge.listo { background: var(--exito-suave); color: var(--exito); }

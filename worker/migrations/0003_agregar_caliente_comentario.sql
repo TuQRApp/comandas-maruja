@@ -1,0 +1,2 @@
+ALTER TABLE pedidos ADD COLUMN comentario TEXT;
+ALTER TABLE items_pedido ADD COLUMN caliente INTEGER NOT NULL DEFAULT 0;

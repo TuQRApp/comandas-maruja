@@ -65,8 +65,8 @@ async function llamar(path, opts = {}) {
 export const api = {
   health: () => llamar('/api/health'),
 
-  crearPedido: (items, cliente) =>
-    llamar('/api/pedidos', { method: 'POST', body: JSON.stringify({ items, cliente }) }),
+  crearPedido: (items, cliente, comentario) =>
+    llamar('/api/pedidos', { method: 'POST', body: JSON.stringify({ items, cliente, comentario }) }),
 
   listarPedidos: (fecha) => llamar(`/api/pedidos${fecha ? `?fecha=${fecha}` : ''}`),
 
