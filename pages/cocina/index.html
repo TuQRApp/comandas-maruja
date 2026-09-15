@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2f7a3d" />
+<title>Comandas - Cocina</title>
+<link rel="manifest" href="./manifest.json" />
+<link rel="icon" href="./icon-192.png" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<link rel="stylesheet" href="../shared/estilos.css" />
+</head>
+<body>
+
+<div id="pantalla-config" class="config-pantalla" hidden>
+  <h2>Configurar conexión</h2>
+  <p style="color:var(--texto-suave)">Pide estos datos a quien instaló el sistema.</p>
+  <label for="cfg-url">URL de la API (Worker)</label>
+  <input id="cfg-url" type="url" placeholder="https://comandas-empanadas-api.tuusuario.workers.dev" />
+  <label for="cfg-token">Token de acceso</label>
+  <input id="cfg-token" type="text" placeholder="token" />
+  <button class="boton" id="cfg-guardar" style="margin-top:18px">Guardar y continuar</button>
+  <p id="cfg-error" class="aviso error" hidden></p>
+</div>
+
+<div id="app" hidden>
+  <header class="barra">
+    <h1>🧾 Empanadas</h1>
+    <span class="rol">Cocina</span>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button data-tab="pedidos" class="activo">Pedidos</button>
+      <button data-tab="inventario">Inventario</button>
+    </div>
+
+    <section id="tab-pedidos">
+      <input id="buscar" class="tarjeta" style="width:100%;padding:12px;font-size:1.1rem" placeholder="Buscar por N° de comanda..." />
+      <div id="lista-pedidos"><p class="vacio">Cargando…</p></div>
+    </section>
+
+    <section id="tab-inventario" hidden>
+      <div class="tarjeta" id="lista-inventario"></div>
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { api, fechaHoyLocal, tieneConfig, setConfig } from '../shared/api.js';
+
+const pantallaConfig = document.getElementById('pantalla-config');
+const appDiv = document.getElementById('app');
+
+function mostrarApp() {
+  pantallaConfig.hidden = true;
+  appDiv.hidden = false;
+  iniciarApp();
+}
+
+if (!tieneConfig()) {
+  pantallaConfig.hidden = false;
+} else {
+  mostrarApp();
+}
+
+document.getElementById('cfg-guardar').addEventListener('click', async () => {
+  const url = document.getElementById('cfg-url').value;
+  const token = document.getElementById('cfg-token').value;
+  const err = document.getElementById('cfg-error');
+  if (!url) { err.hidden = false; err.textContent = 'Ingresa la URL de la API'; return; }
+  setConfig(url, token);
+  try {
+    await api.health();
+    err.hidden = true;
+    mostrarApp();
+  } catch (e) {
+    err.hidden = false;
+    err.textContent = 'No se pudo conectar: ' + e.message;
+  }
+});
+
+let yaIniciado = false;
+let ultimosPedidos = [];
+
+function iniciarApp() {
+  if (yaIniciado) return;
+  yaIniciado = true;
+
+  document.querySelectorAll('.tabs button').forEach((b) =>
+    b.addEventListener('click', () => cambiarTab(b.dataset.tab))
+  );
+  document.getElementById('buscar').addEventListener('input', (e) => renderPedidos(filtrar(e.target.value)));
+
+  cargarPedidos();
+  cargarInventario();
+  setInterval(cargarPedidos, 4000);
+
+  function filtrar(texto) {
+    texto = (texto || '').trim();
+    if (!texto) return ultimosPedidos;
+    return ultimosPedidos.filter((p) => String(p.correlativo).includes(texto));
+  }
+
+  async function cargarPedidos() {
+    try {
+      const { pedidos } = await api.listarPedidos(fechaHoyLocal());
+      // Cocina ve primero lo que aún no está listo
+      ultimosPedidos = pedidos.sort((a, b) => {
+        if ((a.estado === 'listo') !== (b.estado === 'listo')) return a.estado === 'listo' ? 1 : -1;
+        return b.correlativo - a.correlativo;
+      });
+      renderPedidos(filtrar(document.getElementById('buscar').value));
+    } catch (e) {
+      document.getElementById('lista-pedidos').innerHTML = `<p class="aviso error">No se pudo cargar: ${e.message}</p>`;
+    }
+  }
+
+  function renderPedidos(pedidos) {
+    const cont = document.getElementById('lista-pedidos');
+    if (pedidos.length === 0) {
+      cont.innerHTML = '<p class="vacio">Sin pedidos que mostrar</p>';
+      return;
+    }
+    cont.innerHTML = pedidos.map(renderPedido).join('');
+    pedidos.forEach((p) => {
+      const btn = document.getElementById(`confirmar-${p.id}`);
+      if (btn) btn.addEventListener('click', () => confirmarPedido(p));
+      p.items.forEach((it) => {
+        const menos = document.getElementById(`menos-${p.id}-${it.id}`);
+        const mas = document.getElementById(`mas-${p.id}-${it.id}`);
+        const input = document.getElementById(`cant-${p.id}-${it.id}`);
+        if (!menos) return;
+        menos.addEventListener('click', () => { input.value = Math.max(0, Number(input.value) - 1); });
+        mas.addEventListener('click', () => { input.value = Math.min(it.cantidad_pedida, Number(input.value) + 1); });
+      });
+    });
+  }
+
+  function renderPedido(p) {
+    const esListo = p.estado === 'listo';
+    const items = p.items.map((it) => {
+      const entregado = it.cantidad_entregada != null ? it.cantidad_entregada : it.cantidad_pedida;
+      if (esListo) {
+        return `<div class="linea-item"><span>${it.sabor}</span><span class="cant">${entregado} / ${it.cantidad_pedida}</span></div>`;
+      }
+      return `<div class="fila-sabor">
+        <span class="nombre ${it.sabor === 'Pino' ? 'pino' : ''}">${it.sabor} <small style="color:var(--texto-suave)">(pedido: ${it.cantidad_pedida})</small></span>
+        <span class="stepper">
+          <button type="button" id="menos-${p.id}-${it.id}">−</button>
+          <input type="number" id="cant-${p.id}-${it.id}" value="${it.cantidad_pedida}" readonly />
+          <button type="button" id="mas-${p.id}-${it.id}">+</button>
+        </span>
+      </div>`;
+    }).join('');
+
+    return `<div class="tarjeta">
+      <div class="pedido-cabecera">
+        <span class="num">#${p.correlativo}</span>
+        <span class="hora">${p.hora}</span>
+      </div>
+      <span class="badge ${p.estado}">${etiquetaEstado(p.estado)}</span>
+      <div style="margin-top:10px">${items}</div>
+      ${esListo ? '' : `<button class="boton" style="margin-top:14px" id="confirmar-${p.id}">Confirmar entrega</button>`}
+    </div>`;
+  }
+
+  function etiquetaEstado(e) {
+    return { pendiente: 'Pendiente de imprimir', impreso: 'Impreso - en preparación', error_impresion: 'Error de impresión', listo: 'Listo' }[e] || e;
+  }
+
+  async function confirmarPedido(p) {
+    const items = p.items.map((it) => ({
+      sabor: it.sabor,
+      cantidad_entregada: Number(document.getElementById(`cant-${p.id}-${it.id}`).value),
+    }));
+    try {
+      await api.confirmarPedido(p.id, items);
+      cargarPedidos();
+    } catch (e) {
+      alert('Error al confirmar: ' + e.message);
+    }
+  }
+
+  async function cargarInventario() {
+    const cont = document.getElementById('lista-inventario');
+    try {
+      const { inventario } = await api.inventario();
+      cont.innerHTML = inventario.map((it) => `
+        <div class="fila-sabor">
+          <span class="nombre">${it.sabor}</span>
+          <span class="stepper">
+            <button type="button" data-sabor="${it.sabor}" data-op="-1">−</button>
+            <input type="number" value="${it.stock}" readonly />
+            <button type="button" data-sabor="${it.sabor}" data-op="1">+</button>
+          </span>
+        </div>`).join('');
+      cont.querySelectorAll('button[data-sabor]').forEach((b) =>
+        b.addEventListener('click', async () => {
+          await api.ajustarInventario(b.dataset.sabor, { delta: Number(b.dataset.op) });
+          cargarInventario();
+        })
+      );
+    } catch (e) {
+      cont.innerHTML = `<p class="aviso error">${e.message}</p>`;
+    }
+  }
+
+  function cambiarTab(tab) {
+    ['pedidos', 'inventario'].forEach((t) => {
+      document.getElementById('tab-' + t).hidden = t !== tab;
+    });
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('activo', b.dataset.tab === tab));
+    if (tab === 'inventario') cargarInventario();
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

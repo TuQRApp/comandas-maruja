@@ -1,0 +1,87 @@
+// Módulo compartido entre las PWAs de Ventas y Cocina.
+// Guarda la URL del Worker y el token de acceso en localStorage (una vez
+// configurados quedan guardados en el dispositivo).
+
+const LS_URL = 'comandas_api_url';
+const LS_TOKEN = 'comandas_api_token';
+
+export const SABORES = [
+  'Pino',
+  'Mechada',
+  'Champiñón',
+  'Queso',
+  'Camarón',
+  'Napolitana',
+  'Choclo Queso',
+];
+
+export function getConfig() {
+  return {
+    url: localStorage.getItem(LS_URL) || '',
+    token: localStorage.getItem(LS_TOKEN) || '',
+  };
+}
+
+export function setConfig(url, token) {
+  localStorage.setItem(LS_URL, url.trim().replace(/\/+$/, ''));
+  localStorage.setItem(LS_TOKEN, token.trim());
+}
+
+export function tieneConfig() {
+  return !!getConfig().url;
+}
+
+async function llamar(path, opts = {}) {
+  const { url, token } = getConfig();
+  if (!url) throw new Error('Falta configurar la URL de la API');
+
+  const resp = await fetch(url + path, {
+    ...opts,
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { 'x-api-token': token } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+
+  let data = null;
+  try {
+    data = await resp.json();
+  } catch (_) {
+    /* respuesta sin cuerpo JSON */
+  }
+
+  if (!resp.ok) {
+    throw new Error((data && data.error) || `Error ${resp.status}`);
+  }
+  return data;
+}
+
+export const api = {
+  health: () => llamar('/api/health'),
+
+  crearPedido: (items) =>
+    llamar('/api/pedidos', { method: 'POST', body: JSON.stringify({ items }) }),
+
+  listarPedidos: (fecha) => llamar(`/api/pedidos${fecha ? `?fecha=${fecha}` : ''}`),
+
+  obtenerPedido: (id) => llamar(`/api/pedidos/${id}`),
+
+  confirmarPedido: (id, items) =>
+    llamar(`/api/pedidos/${id}/confirmar`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
+
+  inventario: () => llamar('/api/inventario'),
+
+  ajustarInventario: (sabor, cambios) =>
+    llamar('/api/inventario/ajustar', {
+      method: 'POST',
+      body: JSON.stringify({ sabor, ...cambios }),
+    }),
+};
+
+export function fechaHoyLocal() {
+  return new Date().toLocaleString('sv-SE', { timeZone: 'America/Santiago' }).split(' ')[0];
+}
