@@ -27,7 +27,8 @@
 
 <div id="app" hidden>
   <header class="barra">
-    <h1>🧾 Empanadas</h1>
+    <a href="../index.html" style="text-decoration:none;color:#fff;font-size:1.3rem;line-height:1" title="Volver al inicio">🏠</a>
+    <h1 style="flex:1;text-align:center">🧾 Empanadas</h1>
     <span class="rol">Ventas</span>
     <button id="btn-reconfigurar" class="boton chico secundario" style="background:transparent;color:#fff;border-color:#fff">⚙️</button>
   </header>
@@ -40,6 +41,10 @@
     </div>
 
     <section id="tab-nuevo">
+      <div class="tarjeta">
+        <label for="cliente" style="display:block;font-weight:600;margin-bottom:6px">Nombre del cliente <span style="font-weight:400;color:var(--texto-suave)">(opcional)</span></label>
+        <input id="cliente" type="text" placeholder="Ej: Juanita" style="width:100%;padding:12px;font-size:1.1rem;border:1px solid var(--borde);border-radius:10px" />
+      </div>
       <div class="tarjeta" id="lista-sabores"></div>
       <button class="boton" id="btn-imprimir">IMPRIMIR COMANDA</button>
       <p id="msg-nuevo" hidden></p>
@@ -56,7 +61,7 @@
 </div>
 
 <script type="module">
-import { api, SABORES, tieneConfig, setConfig, fechaHoyLocal } from '../shared/api.js';
+import { api, SABORES, tieneConfig, setConfig, fechaHoyLocal, escapeHtml } from '../shared/api.js';
 
 // --- Configuración inicial -------------------------------------------------
 const pantallaConfig = document.getElementById('pantalla-config');
@@ -149,14 +154,17 @@ function iniciarApp() {
       msg.hidden = false; msg.className = 'aviso error'; msg.textContent = 'Ingresa al menos una cantidad';
       return;
     }
+    const clienteInput = document.getElementById('cliente');
+    const cliente = clienteInput.value.trim();
     const btn = document.getElementById('btn-imprimir');
     btn.disabled = true; btn.textContent = 'Enviando...';
     try {
-      const pedido = await api.crearPedido(items);
+      const pedido = await api.crearPedido(items, cliente);
       msg.hidden = false; msg.className = 'aviso exito';
       msg.textContent = `Comanda #${pedido.correlativo} enviada a impresión`;
       SABORES.forEach((s) => (cantidades[s] = 0));
       renderSabores();
+      clienteInput.value = '';
       cargarPedidos();
     } catch (e) {
       msg.hidden = false; msg.className = 'aviso error'; msg.textContent = 'Error: ' + e.message;
@@ -186,6 +194,7 @@ function iniciarApp() {
         <span class="num">#${p.correlativo}</span>
         <span class="hora">${p.hora}</span>
       </div>
+      ${p.cliente ? `<div style="color:var(--texto-suave);margin-bottom:6px">Cliente: ${escapeHtml(p.cliente)}</div>` : ''}
       <span class="badge ${p.estado}">${etiquetaEstado(p.estado)}</span>
       <div style="margin-top:10px">${items}</div>
     </div>`;

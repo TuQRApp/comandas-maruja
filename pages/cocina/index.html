@@ -27,7 +27,8 @@
 
 <div id="app" hidden>
   <header class="barra">
-    <h1>🧾 Empanadas</h1>
+    <a href="../index.html" style="text-decoration:none;color:#fff;font-size:1.3rem;line-height:1" title="Volver al inicio">🏠</a>
+    <h1 style="flex:1;text-align:center">🧾 Empanadas</h1>
     <span class="rol">Cocina</span>
     <button id="btn-reconfigurar" class="boton chico secundario" style="background:transparent;color:#fff;border-color:#fff">⚙️</button>
   </header>
@@ -39,7 +40,7 @@
     </div>
 
     <section id="tab-pedidos">
-      <input id="buscar" class="tarjeta" style="width:100%;padding:12px;font-size:1.1rem" placeholder="Buscar por N° de comanda..." />
+      <input id="buscar" class="tarjeta" style="width:100%;padding:12px;font-size:1.1rem" placeholder="Buscar por N° de comanda o cliente..." />
       <div id="lista-pedidos"><p class="vacio">Cargando…</p></div>
     </section>
 
@@ -50,7 +51,7 @@
 </div>
 
 <script type="module">
-import { api, fechaHoyLocal, tieneConfig, setConfig } from '../shared/api.js';
+import { api, fechaHoyLocal, tieneConfig, setConfig, escapeHtml } from '../shared/api.js';
 
 const pantallaConfig = document.getElementById('pantalla-config');
 const appDiv = document.getElementById('app');
@@ -108,9 +109,11 @@ function iniciarApp() {
   setInterval(cargarPedidos, 4000);
 
   function filtrar(texto) {
-    texto = (texto || '').trim();
+    texto = (texto || '').trim().toLowerCase();
     if (!texto) return ultimosPedidos;
-    return ultimosPedidos.filter((p) => String(p.correlativo).includes(texto));
+    return ultimosPedidos.filter(
+      (p) => String(p.correlativo).includes(texto) || (p.cliente || '').toLowerCase().includes(texto)
+    );
   }
 
   async function cargarPedidos() {
@@ -170,6 +173,7 @@ function iniciarApp() {
         <span class="num">#${p.correlativo}</span>
         <span class="hora">${p.hora}</span>
       </div>
+      ${p.cliente ? `<div style="color:var(--texto-suave);margin-bottom:6px">Cliente: ${escapeHtml(p.cliente)}</div>` : ''}
       <span class="badge ${p.estado}">${etiquetaEstado(p.estado)}</span>
       <div style="margin-top:10px">${items}</div>
       ${esListo ? '' : `<button class="boton" style="margin-top:14px" id="confirmar-${p.id}">Confirmar entrega</button>`}

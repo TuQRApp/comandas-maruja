@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS pedidos (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   correlativo   INTEGER NOT NULL,
+  cliente       TEXT,                       -- nombre del cliente (opcional)
   fecha         TEXT NOT NULL,              -- 'YYYY-MM-DD' (día local Chile)
   hora          TEXT NOT NULL,              -- 'HH:MM:SS' hora local de creación
   creado_en     TEXT NOT NULL,              -- ISO 8601 UTC

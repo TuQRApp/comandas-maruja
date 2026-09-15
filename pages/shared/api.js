@@ -60,8 +60,8 @@ async function llamar(path, opts = {}) {
 export const api = {
   health: () => llamar('/api/health'),
 
-  crearPedido: (items) =>
-    llamar('/api/pedidos', { method: 'POST', body: JSON.stringify({ items }) }),
+  crearPedido: (items, cliente) =>
+    llamar('/api/pedidos', { method: 'POST', body: JSON.stringify({ items, cliente }) }),
 
   listarPedidos: (fecha) => llamar(`/api/pedidos${fecha ? `?fecha=${fecha}` : ''}`),
 
@@ -81,6 +81,12 @@ export const api = {
       body: JSON.stringify({ sabor, ...cambios }),
     }),
 };
+
+export function escapeHtml(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, (ch) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
 
 export function fechaHoyLocal() {
   return new Date().toLocaleString('sv-SE', { timeZone: 'America/Santiago' }).split(' ')[0];

@@ -60,6 +60,8 @@ app.post('/api/pedidos', async (c) => {
     return c.json({ error: 'No hay cantidades válidas mayores a 0' }, 400);
   }
 
+  const cliente = typeof body.cliente === 'string' ? body.cliente.trim().slice(0, 80) : '';
+
   const { fecha, hora } = fechaHoraLocal();
   const creadoEn = new Date().toISOString();
 
@@ -73,9 +75,9 @@ app.post('/api/pedidos', async (c) => {
   const db = c.env.DB;
   const insertPedido = await db
     .prepare(
-      `INSERT INTO pedidos (correlativo, fecha, hora, creado_en, estado) VALUES (?, ?, ?, ?, 'pendiente')`
+      `INSERT INTO pedidos (correlativo, cliente, fecha, hora, creado_en, estado) VALUES (?, ?, ?, ?, ?, 'pendiente')`
     )
-    .bind(correlativo, fecha, hora, creadoEn)
+    .bind(correlativo, cliente || null, fecha, hora, creadoEn)
     .run();
 
   const pedidoId = insertPedido.meta.last_row_id;
@@ -190,7 +192,7 @@ app.get('/api/print-jobs/pendientes', async (c) => {
   const db = c.env.DB;
   const { results: jobs } = await db
     .prepare(
-      `SELECT pj.*, p.correlativo, p.fecha, p.hora
+      `SELECT pj.*, p.correlativo, p.cliente, p.fecha, p.hora
        FROM print_jobs pj JOIN pedidos p ON p.id = pj.pedido_id
        WHERE pj.estado = 'pendiente'
        ORDER BY pj.id ASC LIMIT 10`
@@ -207,6 +209,7 @@ app.get('/api/print-jobs/pendientes', async (c) => {
       job_id: job.id,
       pedido_id: job.pedido_id,
       correlativo: job.correlativo,
+      cliente: job.cliente || '',
       fecha: job.fecha,
       hora: job.hora,
       items: items.map((it) => ({ nombre: it.sabor, cantidad: it.cantidad_pedida })),

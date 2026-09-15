@@ -68,10 +68,13 @@ function imprimirTicket(job) {
           .align('CT')
           .size(1, 1)
           .text(`COMANDA #${job.correlativo}`)
-          .text(`${job.fecha}  ${job.hora}`)
-          .text('--------------------------------')
-          .align('LT')
-          .size(1, 1);
+          .text(`${job.fecha}  ${job.hora}`);
+
+        if (job.cliente) {
+          printer.text(`Cliente: ${job.cliente}`);
+        }
+
+        printer.text('--------------------------------').align('LT').size(1, 1);
 
         for (const item of job.items) {
           printer.text(`${item.cantidad} x ${item.nombre}`);
