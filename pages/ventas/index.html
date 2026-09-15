@@ -67,6 +67,7 @@ import { api, SABORES, tieneConfig, getConfig, setConfig, fechaHoyLocal, escapeH
 // --- Configuración inicial -------------------------------------------------
 const pantallaConfig = document.getElementById('pantalla-config');
 const appDiv = document.getElementById('app');
+let yaIniciado = false;
 
 function mostrarApp() {
   pantallaConfig.hidden = true;
@@ -110,7 +111,6 @@ document.getElementById('cfg-cancelar').addEventListener('click', () => {
 });
 
 // --- App --------------------------------------------------------------
-let yaIniciado = false;
 function iniciarApp() {
   if (yaIniciado) return;
   yaIniciado = true;

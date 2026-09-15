@@ -56,6 +56,7 @@ import { api, fechaHoyLocal, tieneConfig, getConfig, setConfig, escapeHtml } fro
 
 const pantallaConfig = document.getElementById('pantalla-config');
 const appDiv = document.getElementById('app');
+let yaIniciado = false;
 
 function mostrarApp() {
   pantallaConfig.hidden = true;
@@ -98,7 +99,6 @@ document.getElementById('cfg-cancelar').addEventListener('click', () => {
   if (yaIniciado) mostrarApp();
 });
 
-let yaIniciado = false;
 let ultimosPedidos = [];
 
 function iniciarApp() {
