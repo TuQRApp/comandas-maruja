@@ -9,7 +9,7 @@ compatibility_date = "2026-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "comandas-empanadas"
-database_id = "PEGAR_AQUI_EL_DATABASE_ID"
+database_id = "aeb1084d-0bd3-40a7-918d-7460ae09bc0f"
 
 # --- Durable Object para el correlativo atómico ---------------------------
 [[durable_objects.bindings]]
@@ -18,7 +18,7 @@ class_name = "Correlativo"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["Correlativo"]
+new_sqlite_classes = ["Correlativo"]
 
 # --- Secret (no va en este archivo) ---------------------------------------
 # El token compartido que usan las PWAs y el Bridge para autenticarse.
