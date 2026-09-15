@@ -1,4 +1,4 @@
-const CACHE = 'cocina-v3';
+const CACHE = 'cocina-v4';
 const ARCHIVOS = ['./index.html', './manifest.json', '../shared/api.js', '../shared/estilos.css'];
 
 self.addEventListener('install', (e) => {
@@ -13,10 +13,23 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
+// "Network-first": siempre intenta traer la versión más nueva del shell
+// estático de la app. Solo usa la copia en caché si no hay conexión (para
+// que la app siga abriendo sin internet). Así, cada vez que se publica una
+// actualización, el dispositivo la ve de inmediato en vez de quedarse con
+// una versión vieja guardada.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) return; // deja pasar llamadas a la API
+  if (e.request.method !== 'GET') return;
+
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(e.request)
+      .then((resp) => {
+        const copia = resp.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copia));
+        return resp;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
